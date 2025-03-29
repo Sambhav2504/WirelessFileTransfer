@@ -461,9 +461,10 @@
             }
         });
 
-        // Drag and drop highlight
+        // Fixed drag and drop functionality
         const fileUploadLabel = document.querySelector('.file-upload-label');
-        
+        const fileInput = document.getElementById('fileInput');
+
         fileUploadLabel.addEventListener('dragover', (e) => {
             e.preventDefault();
             fileUploadLabel.style.background = 'var(--input-hover)';
@@ -479,6 +480,12 @@
             e.preventDefault();
             fileUploadLabel.style.background = 'var(--input-bg)';
             fileUploadLabel.style.borderColor = 'var(--input-border)';
+            
+            // Handle dropped files
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                displayFileName(); // Update UI to show selected file
+            }
         });
     </script>
 </body>
