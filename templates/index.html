@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure File Transfer</title>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0071e3;
+            --primary-hover: #0077ed;
+            --background-dark: #000;
+            --background-light: #f5f5f7;
+            --text-dark: #1d1d1f;
+            --text-light: #f5f5f7;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --success-bg: rgba(52, 199, 89, 0.1);
+            --error-bg: rgba(255, 59, 48, 0.1);
+        }
+        
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-light);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .container {
+            max-width: 620px;
+            margin: 80px auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        
+        h1 {
+            font-size: 40px;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.5px;
+            background: linear-gradient(45deg, #0071e3, #7bdcff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        h2 {
+            font-size: 24px;
+            font-weight: 500;
+            margin: 30px 0 20px;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        input, button {
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: none;
+            font-size: 17px;
+            margin-bottom: 16px;
+            transition: all 0.2s ease;
+        }
+        
+        input {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        
+        button {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+        }
+        
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-label {
+            display: block;
+            padding: 14px 20px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-light);
+            border-radius: 12px;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .file-input-label:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .message {
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 15px;
+        }
+        
+        .success-message {
+            background: var(--success-bg);
+            border-left: 4px solid #34c759;
+        }
+        
+        .error-message {
+            background: var(--error-bg);
+            border-left: 4px solid #ff3b30;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .info-item strong {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+        
+        /* Progress bar styles */
+        .progress-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #0071e3, #7bdcff);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        /* Success notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(52, 199, 89, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transform: translateX(200%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification i {
+            font-size: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 40px auto;
+            }
+            
+            h1 {
+                font-size: 32px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .notification {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                transform: translateY(-100px);
+            }
+            
+            .notification.show {
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Secure File Transfer</h1>
+            <p>End-to-end encrypted file sharing with military-grade security</p>
+        </header>
+        
+        <div class="card">
+            <h2>Upload File</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="file-input-wrapper">
+                    <input type="file" name="file" id="file" required>
+                    <label for="file" class="file-input-label">Choose file or drag here</label>
+                </div>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                    <div class="progress-text" id="progressText">0% uploaded</div>
+                </div>
+                
+                <button type="submit">Upload & Encrypt</button>
+            </form>
+            
+            <div id="uploadResult"></div>
+        </div>
+        
+        <div class="card">
+            <h2>Download File</h2>
+            <form action="/download" method="post">
+                <input type="text" name="code" placeholder="Access Code" required>
+                <input type="text" name="key" placeholder="Decryption PIN (4 digits)" required>
+                <button type="submit">Decrypt & Download</button>
+            </form>
+            
+            {% if error %}
+            <div class="message error-message">
+                <p>{{ error }}</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <footer>
+            <p>256-bit AES encryption • Zero-knowledge architecture</p>
+            <p>© 2023 Secure File Transfer. All rights reserved.</p>
+        </footer>
+    </div>
+    
+    <div class="notification" id="successNotification">
+        <i class="fas fa-check-circle"></i>
+        <span>File uploaded successfully!</span>
+    </div>
+    
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const uploadResult = document.getElementById('uploadResult');
+            const notification = document.getElementById('successNotification');
+            
+            if (!file) {
+                uploadResult.innerHTML = `
+                    <div class="message error-message">
+                        <p>Please select a file to upload</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show progress bar
+            progressContainer.style.display = 'block';
+            uploadResult.innerHTML = '';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressText.textContent = percent + '% uploaded';
+                    }
+                });
+                
+                xhr.open('POST', '/upload', true);
+                
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        
+                        // Show success notification
+                        notification.classList.add('show');
+                        setTimeout(() => {
+                            notification.classList.remove('show');
+                        }, 3000);
+                        
+                        // Display upload result
+                        uploadResult.innerHTML = `
+                            <div class="message success-message">
+                                <p>Your file has been securely encrypted and stored.</p>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <strong>File Name</strong>
+                                        ${response.file}
+                                    </div>
+                                    <div class="info-item">
+                                        <strong>File Size</strong>
+                                        ${response.size} KB
+                                    </div>
+                                    <div class="info-item">
+                                        <strong>Timestamp</strong>
+                                        ${response.timestamp}
+                                    </div>
+                                    <div class="info-item">
+                                        <strong>Access Code</strong>
+                                        ${response.code}
+                                    </div>
+                                    <div class="info-item">
+                                        <strong>Decryption PIN</strong>
+                                        ${response.key}
+                                    </div>
+                                </div>
+                                <p style="margin-top: 16px; font-size: 13px; opacity: 0.7;">
+                                    Important: Save the Access Code and Decryption PIN. Without these, the file cannot be retrieved.
+                                </p>
+                            </div>
+                        `;
+                    } else {
+                        const error = JSON.parse(xhr.responseText).error || 'Upload failed';
+                        uploadResult.innerHTML = `
+                            <div class="message error-message">
+                                <p>${error}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // Reset progress
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                };
+                
+                xhr.send(formData);
+                
+            } catch (error) {
+                uploadResult.innerHTML = `
+                    <div class="message error-message">
+                        <p>Upload failed: ${error.message}</p>
+                    </div>
+                `;
+                progressContainer.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
