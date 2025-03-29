@@ -11,13 +11,14 @@
             --primary-color: #0071e3;
             --primary-hover: #0077ed;
             --background-dark: #000;
-            --background-light: #f5f5f7;
-            --text-dark: #1d1d1f;
             --text-light: #f5f5f7;
             --card-bg: rgba(255, 255, 255, 0.08);
-            --card-border: rgba(255, 255, 255, 0.1);
-            --success-bg: rgba(52, 199, 89, 0.1);
-            --error-bg: rgba(255, 59, 48, 0.1);
+            --input-bg: rgba(255, 255, 255, 0.05);
+            --input-border: rgba(255, 255, 255, 0.15);
+            --input-hover: rgba(255, 255, 255, 0.08);
+            --success-bg: rgba(52, 199, 89, 0.9);
+            --error-bg: rgba(255, 59, 48, 0.9);
+            --info-bg: rgba(0, 113, 227, 0.1);
         }
         
         body {
@@ -60,16 +61,10 @@
         .card {
             background: var(--card-bg);
             backdrop-filter: blur(20px);
-            border: 1px solid var(--card-border);
+            border: 1px solid var(--input-border);
             border-radius: 18px;
             padding: 30px;
             margin-bottom: 30px;
-            transition: all 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
         
         form {
@@ -83,23 +78,12 @@
             border: none;
             font-size: 17px;
             margin-bottom: 16px;
-            transition: all 0.2s ease;
         }
         
         input {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--input-bg);
             color: var(--text-light);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        input:focus {
-            outline: none;
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-        
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.4);
+            border: 1px solid var(--input-border);
         }
         
         button {
@@ -107,102 +91,77 @@
             color: white;
             font-weight: 500;
             cursor: pointer;
-            border: none;
+            transition: all 0.2s ease;
         }
         
-        button:hover {
+        button:hover:not(:disabled) {
             background: var(--primary-hover);
             transform: translateY(-1px);
         }
         
-        button:active {
-            transform: translateY(0);
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
         }
         
-        .file-input-wrapper {
+        .file-upload-area {
             position: relative;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
         }
         
-        .file-input-wrapper input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-        
-        .file-input-label {
+        .file-upload-label {
             display: block;
-            padding: 14px 20px;
-            background: rgba(255, 255, 255, 0.08);
+            padding: 40px 20px;
+            background: var(--input-bg);
             color: var(--text-light);
             border-radius: 12px;
-            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border: 2px dashed var(--input-border);
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         }
         
-        .file-input-label:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.5);
+        .file-upload-label:hover {
+            background: var(--input-hover);
+            border-color: rgba(255, 255, 255, 0.3);
         }
         
-        .message {
-            padding: 16px;
-            border-radius: 12px;
-            margin-top: 20px;
-            font-size: 15px;
-        }
-        
-        .success-message {
-            background: var(--success-bg);
-            border-left: 4px solid #34c759;
-        }
-        
-        .error-message {
-            background: var(--error-bg);
-            border-left: 4px solid #ff3b30;
-        }
-        
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-        }
-        
-        .info-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        
-        .info-item strong {
+        .file-upload-label i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            opacity: 0.8;
             display: block;
-            font-weight: 500;
-            margin-bottom: 4px;
-            color: #fff;
         }
         
-        footer {
-            text-align: center;
-            margin-top: 60px;
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
+        .file-upload-label .instructions {
+            font-size: 16px;
+            margin-bottom: 5px;
         }
         
-        /* Progress bar styles */
+        .file-upload-label .size-info {
+            font-size: 13px;
+            opacity: 0.6;
+        }
+        
+        .file-selection {
+            background: var(--input-bg);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: fadeIn 0.3s ease;
+            border: 1px solid var(--input-border);
+        }
+        
         .progress-container {
             width: 100%;
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--input-bg);
             border-radius: 8px;
-            margin: 15px 0;
+            margin: 10px 0;
             display: none;
+            border: 1px solid var(--input-border);
         }
         
         .progress-bar {
@@ -216,16 +175,14 @@
         .progress-text {
             text-align: center;
             margin-top: 5px;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
         }
         
-        /* Success notification */
         .notification {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: rgba(52, 199, 89, 0.9);
             color: white;
             padding: 15px 25px;
             border-radius: 12px;
@@ -238,12 +195,53 @@
             z-index: 1000;
         }
         
+        .notification.success {
+            background: var(--success-bg);
+        }
+        
+        .notification.error {
+            background: var(--error-bg);
+        }
+        
         .notification.show {
             transform: translateX(0);
         }
         
-        .notification i {
-            font-size: 20px;
+        .credentials-box {
+            background: rgba(0, 0, 0, 0.25);
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border-left: 4px solid #0071e3;
+            backdrop-filter: blur(10px);
+        }
+        
+        .file-info {
+            background: var(--info-bg);
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-top: 16px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            border-left: 3px solid var(--primary-color);
+            line-height: 1.5;
+        }
+        
+        .file-info i {
+            color: var(--primary-color);
+            margin-right: 8px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         @media (max-width: 768px) {
@@ -255,8 +253,8 @@
                 font-size: 32px;
             }
             
-            .info-grid {
-                grid-template-columns: 1fr;
+            .file-upload-label {
+                padding: 30px 15px;
             }
             
             .notification {
@@ -276,15 +274,25 @@
     <div class="container">
         <header>
             <h1>Secure File Transfer</h1>
-            <p>End-to-end encrypted file sharing with military-grade security</p>
+            <p>Private file sharing with one-time access</p>
         </header>
         
         <div class="card">
             <h2>Upload File</h2>
             <form id="uploadForm" enctype="multipart/form-data">
-                <div class="file-input-wrapper">
-                    <input type="file" name="file" id="file" required>
-                    <label for="file" class="file-input-label">Choose file or drag here</label>
+                <div class="file-upload-area">
+                    <input type="file" name="file" id="fileInput" required style="display: none;" onchange="displayFileName()">
+                    <label for="fileInput" class="file-upload-label">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span class="instructions">Drag & drop files here or click to browse</span>
+                        <span class="size-info">Maximum file size: 150MB</span>
+                    </label>
+                </div>
+                
+                <div class="file-selection" id="fileSelection">
+                    <i class="fas fa-file"></i>
+                    <span id="selectedFileName"></span>
+                    <span id="fileSize" style="margin-left: auto; color: rgba(255,255,255,0.5); font-size: 13px;"></span>
                 </div>
                 
                 <div class="progress-container" id="progressContainer">
@@ -292,62 +300,104 @@
                     <div class="progress-text" id="progressText">0% uploaded</div>
                 </div>
                 
-                <button type="submit">Upload & Encrypt</button>
+                <button type="submit" id="uploadBtn">
+                    <i class="fas fa-lock"></i> Encrypt & Upload
+                </button>
+                
+                <div class="file-info">
+                    <i class="fas fa-info-circle"></i>
+                    Files are automatically deleted after 24 hours. For important files, 
+                    please download immediately as they may be lost if the server restarts.
+                </div>
+                
+                <div id="uploadResult"></div>
             </form>
-            
-            <div id="uploadResult"></div>
         </div>
         
         <div class="card">
             <h2>Download File</h2>
             <form action="/download" method="post">
                 <input type="text" name="code" placeholder="Access Code" required>
-                <input type="text" name="key" placeholder="Decryption PIN (4 digits)" required>
-                <button type="submit">Decrypt & Download</button>
+                <input type="text" name="key" placeholder="Decryption PIN" required>
+                <button type="submit">
+                    <i class="fas fa-download"></i> Decrypt & Download
+                </button>
             </form>
-            
-            {% if error %}
-            <div class="message error-message">
-                <p>{{ error }}</p>
-            </div>
-            {% endif %}
         </div>
         
         <footer>
-            <p>256-bit AES encryption • Zero-knowledge architecture</p>
-            <p>© 2023 Secure File Transfer. All rights reserved.</p>
+            <p>Secure File Transfer</p>
         </footer>
     </div>
-    
-    <div class="notification" id="successNotification">
+
+    <div class="notification success" id="successNotification">
         <i class="fas fa-check-circle"></i>
         <span>File uploaded successfully!</span>
     </div>
-    
+
+    <div class="notification error" id="sizeErrorNotification">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>File size exceeds 150MB limit</span>
+    </div>
+
     <script>
+        const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150MB in bytes
+
+        // Display selected filename and size
+        function displayFileName() {
+            const fileInput = document.getElementById('fileInput');
+            const fileSelection = document.getElementById('fileSelection');
+            const fileNameDisplay = document.getElementById('selectedFileName');
+            const fileSizeDisplay = document.getElementById('fileSize');
+            
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileSelection.style.display = 'flex';
+                fileNameDisplay.textContent = file.name;
+                fileSizeDisplay.textContent = formatFileSize(file.size);
+            } else {
+                fileSelection.style.display = 'none';
+            }
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes >= 1024 * 1024) {
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            } else if (bytes >= 1024) {
+                return (bytes / 1024).toFixed(1) + ' KB';
+            }
+            return bytes + ' bytes';
+        }
+
+        // Handle form submission
         document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const fileInput = document.getElementById('file');
+            const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
+            const uploadBtn = document.getElementById('uploadBtn');
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
-            const uploadResult = document.getElementById('uploadResult');
-            const notification = document.getElementById('successNotification');
+            const successNotification = document.getElementById('successNotification');
+            const sizeErrorNotification = document.getElementById('sizeErrorNotification');
             
-            if (!file) {
-                uploadResult.innerHTML = `
-                    <div class="message error-message">
-                        <p>Please select a file to upload</p>
-                    </div>
-                `;
+            // Clear previous notifications
+            successNotification.classList.remove('show');
+            sizeErrorNotification.classList.remove('show');
+            
+            // File size validation
+            if (file.size > MAX_FILE_SIZE) {
+                sizeErrorNotification.classList.add('show');
+                setTimeout(() => sizeErrorNotification.classList.remove('show'), 3000);
                 return;
             }
             
-            // Show progress bar
+            // Update UI
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Encrypting...';
             progressContainer.style.display = 'block';
-            uploadResult.innerHTML = '';
             
             const formData = new FormData();
             formData.append('file', file);
@@ -359,77 +409,76 @@
                     if (e.lengthComputable) {
                         const percent = Math.round((e.loaded / e.total) * 100);
                         progressBar.style.width = percent + '%';
-                        progressText.textContent = percent + '% uploaded';
+                        progressText.textContent = `${percent}% uploaded`;
                     }
                 });
-                
-                xhr.open('POST', '/upload', true);
                 
                 xhr.onload = function() {
                     if (xhr.status === 200) {
                         const response = JSON.parse(xhr.responseText);
                         
                         // Show success notification
-                        notification.classList.add('show');
+                        successNotification.classList.add('show');
                         setTimeout(() => {
-                            notification.classList.remove('show');
+                            successNotification.classList.remove('show');
                         }, 3000);
                         
-                        // Display upload result
-                        uploadResult.innerHTML = `
-                            <div class="message success-message">
-                                <p>Your file has been securely encrypted and stored.</p>
-                                <div class="info-grid">
-                                    <div class="info-item">
-                                        <strong>File Name</strong>
-                                        ${response.file}
-                                    </div>
-                                    <div class="info-item">
-                                        <strong>File Size</strong>
-                                        ${response.size} KB
-                                    </div>
-                                    <div class="info-item">
-                                        <strong>Timestamp</strong>
-                                        ${response.timestamp}
-                                    </div>
-                                    <div class="info-item">
-                                        <strong>Access Code</strong>
-                                        ${response.code}
-                                    </div>
-                                    <div class="info-item">
-                                        <strong>Decryption PIN</strong>
-                                        ${response.key}
-                                    </div>
-                                </div>
-                                <p style="margin-top: 16px; font-size: 13px; opacity: 0.7;">
-                                    Important: Save the Access Code and Decryption PIN. Without these, the file cannot be retrieved.
+                        // Display credentials
+                        document.getElementById('uploadResult').innerHTML = `
+                            <div class="credentials-box">
+                                <p><strong><i class="fas fa-key"></i> Access Code:</strong> ${response.code}</p>
+                                <p><strong><i class="fas fa-lock"></i> Decryption PIN:</strong> ${response.key}</p>
+                                <p style="margin-top: 12px; font-size: 14px; opacity: 0.7;">
+                                    <i class="fas fa-info-circle"></i> Save these credentials - they will only work once.
                                 </p>
                             </div>
                         `;
+                        
+                        // Reset UI
+                        uploadBtn.innerHTML = '<i class="fas fa-check"></i> Upload Complete';
+                        progressText.textContent = 'Upload complete!';
                     } else {
-                        const error = JSON.parse(xhr.responseText).error || 'Upload failed';
-                        uploadResult.innerHTML = `
-                            <div class="message error-message">
-                                <p>${error}</p>
-                            </div>
-                        `;
+                        handleUploadError(xhr.responseText);
                     }
-                    
-                    // Reset progress
-                    progressContainer.style.display = 'none';
-                    progressBar.style.width = '0%';
                 };
                 
+                xhr.onerror = function() {
+                    handleUploadError("Network error occurred");
+                };
+                
+                xhr.open('POST', '/upload');
                 xhr.send(formData);
                 
             } catch (error) {
-                uploadResult.innerHTML = `
-                    <div class="message error-message">
-                        <p>Upload failed: ${error.message}</p>
-                    </div>
-                `;
-                progressContainer.style.display = 'none';
+                handleUploadError(error.message);
             }
+            
+            function handleUploadError(errorMsg) {
+                uploadBtn.innerHTML = '<i class="fas fa-times"></i> Upload Failed';
+                progressText.textContent = "Error: " + (JSON.parse(errorMsg)?.error || errorMsg || 'Upload failed');
+                progressBar.style.backgroundColor = '#ff3b30';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        // Drag and drop highlight
+        const fileUploadLabel = document.querySelector('.file-upload-label');
+        
+        fileUploadLabel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadLabel.style.background = 'var(--input-hover)';
+            fileUploadLabel.style.borderColor = 'var(--primary-color)';
+        });
+        
+        fileUploadLabel.addEventListener('dragleave', () => {
+            fileUploadLabel.style.background = 'var(--input-bg)';
+            fileUploadLabel.style.borderColor = 'var(--input-border)';
+        });
+        
+        fileUploadLabel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadLabel.style.background = 'var(--input-bg)';
+            fileUploadLabel.style.borderColor = 'var(--input-border)';
         });
     </script>
 </body>
