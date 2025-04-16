@@ -14,6 +14,8 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
+from functools import wraps
+import redis
 
 app = Flask(__name__)
 
@@ -22,17 +24,54 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 150 * 1024 * 1024  # 150MB limit
 
+# Redis configuration for rate limiting and IP blocking
+redis_client = redis.Redis(host='localhost', port=6379, db=0)
+RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
+MAX_REQUESTS = 100  # Maximum requests per hour
+BLOCK_DURATION = 1800  # 30 minutes in seconds
+MAX_FAILED_ATTEMPTS = 10  # Maximum failed attempts before blocking
+
 # Store file access codes and keys
 file_data = {}
 
-# Error handler for large files
-@app.errorhandler(413)
-def request_too_large(e):
-    return jsonify({"error": "File exceeds 150MB limit"}), 413
+# Rate limiting decorator
+def rate_limit(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        ip = request.remote_addr
+        key = f"rate_limit:{ip}"
+        
+        # Check if IP is blocked
+        if redis_client.get(f"blocked:{ip}"):
+            return jsonify({"error": "Too many failed attempts. Please try again later."}), 429
+        
+        # Get current request count
+        current = redis_client.get(key)
+        if current is None:
+            redis_client.setex(key, RATE_LIMIT_WINDOW, 1)
+        elif int(current) >= MAX_REQUESTS:
+            return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
+        else:
+            redis_client.incr(key)
+        
+        return f(*args, **kwargs)
+    return decorated_function
 
-# Generate a 4-digit PIN
+# Track failed attempts
+def track_failed_attempt(ip):
+    key = f"failed_attempts:{ip}"
+    attempts = redis_client.incr(key)
+    redis_client.expire(key, BLOCK_DURATION)
+    
+    if attempts >= MAX_FAILED_ATTEMPTS:
+        redis_client.setex(f"blocked:{ip}", BLOCK_DURATION, 1)
+        return True
+    return False
+
+# Generate an alphanumeric 6-character code
 def generate_pin():
-    return "".join(random.choices(string.digits, k=4))
+    characters = string.ascii_uppercase + string.digits
+    return ''.join(random.choices(characters, k=6))
 
 # Derive encryption key from PIN
 def derive_key(pin):
@@ -71,6 +110,7 @@ def upload_form():
     return render_template("index.html")
 
 @app.route("/upload", methods=["POST"])
+@rate_limit
 def upload_file():
     if 'file' not in request.files:
         return jsonify({"error": "No file selected"}), 400
@@ -116,17 +156,23 @@ def upload_file():
         return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
 @app.route("/download", methods=["POST"])
+@rate_limit
 def download_file():
     code = request.form.get("code", "").strip()
     key = request.form.get("key", "").strip()
+    ip = request.remote_addr
 
     if not code or not key:
         return render_template("index.html", error="Both code and key are required")
 
     if code not in file_data:
+        if track_failed_attempt(ip):
+            return render_template("index.html", error="Too many failed attempts. Please try again later.")
         return render_template("index.html", error="Invalid access code")
 
     if key != file_data[code]["key"]:
+        if track_failed_attempt(ip):
+            return render_template("index.html", error="Too many failed attempts. Please try again later.")
         return render_template("index.html", error="Invalid decryption key")
 
     try:
@@ -177,4 +223,4 @@ keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
 keep_alive_thread.start()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)  # debug=False for production
+    app.run(host="0.0.0.0", port=5001, debug=False)  # debug=False for production

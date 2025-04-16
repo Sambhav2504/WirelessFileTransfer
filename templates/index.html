@@ -317,8 +317,8 @@
         <div class="card">
             <h2>Download File</h2>
             <form action="/download" method="post">
-                <input type="text" name="code" placeholder="Access Code" required>
-                <input type="text" name="key" placeholder="Decryption PIN" required>
+                <input type="text" name="code" placeholder="6-character Access Code (A-Z, 0-9)" required pattern="[A-Z0-9]{6}" title="Please enter a 6-character code using uppercase letters and numbers">
+                <input type="text" name="key" placeholder="6-character Decryption PIN (A-Z, 0-9)" required pattern="[A-Z0-9]{6}" title="Please enter a 6-character PIN using uppercase letters and numbers">
                 <button type="submit">
                     <i class="fas fa-download"></i> Decrypt & Download
                 </button>
