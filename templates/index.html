@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure File Transfer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
@@ -269,6 +271,162 @@
             }
         }
     </style>
+    <script>
+        // Define functions before they're used
+        function displayFileName() {
+            const fileInput = document.getElementById('fileInput');
+            const fileSelection = document.getElementById('fileSelection');
+            const fileNameDisplay = document.getElementById('selectedFileName');
+            const fileSizeDisplay = document.getElementById('fileSize');
+            
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileSelection.style.display = 'flex';
+                fileNameDisplay.textContent = file.name;
+                fileSizeDisplay.textContent = formatFileSize(file.size);
+            } else {
+                fileSelection.style.display = 'none';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes >= 1024 * 1024) {
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            } else if (bytes >= 1024) {
+                return (bytes / 1024).toFixed(1) + ' KB';
+            }
+            return bytes + ' bytes';
+        }
+
+        function handleUploadError(errorMessage) {
+            const uploadBtn = document.getElementById('uploadBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const errorNotification = document.getElementById('errorNotification');
+            
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-lock"></i> Encrypt & Upload';
+            progressContainer.style.display = 'none';
+            
+            errorNotification.querySelector('span').textContent = errorMessage;
+            errorNotification.classList.add('show');
+            setTimeout(() => errorNotification.classList.remove('show'), 3000);
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150MB in bytes
+
+            // Handle form submission
+            document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                const uploadBtn = document.getElementById('uploadBtn');
+                const progressContainer = document.getElementById('progressContainer');
+                const progressBar = document.getElementById('progressBar');
+                const progressText = document.getElementById('progressText');
+                const successNotification = document.getElementById('successNotification');
+                const sizeErrorNotification = document.getElementById('sizeErrorNotification');
+                
+                // Clear previous notifications
+                successNotification.classList.remove('show');
+                sizeErrorNotification.classList.remove('show');
+                
+                // File size validation
+                if (file.size > MAX_FILE_SIZE) {
+                    sizeErrorNotification.classList.add('show');
+                    setTimeout(() => sizeErrorNotification.classList.remove('show'), 3000);
+                    return;
+                }
+                
+                // Update UI
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Encrypting...';
+                progressContainer.style.display = 'block';
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                try {
+                    const xhr = new XMLHttpRequest();
+                    
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            progressBar.style.width = percent + '%';
+                            progressText.textContent = percent + '% uploaded';
+                        }
+                    });
+                    
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            
+                            // Show success notification
+                            successNotification.classList.add('show');
+                            setTimeout(() => {
+                                successNotification.classList.remove('show');
+                            }, 3000);
+                            
+                            // Display credentials
+                            document.getElementById('uploadResult').innerHTML = `
+                                <div class="credentials-box">
+                                    <p><strong><i class="fas fa-key"></i> Access Code:</strong> ${response.code}</p>
+                                    <p><strong><i class="fas fa-lock"></i> Decryption PIN:</strong> ${response.key}</p>
+                                    <p style="margin-top: 12px; font-size: 14px; opacity: 0.7;">
+                                        <i class="fas fa-info-circle"></i> Save these credentials - they will only work once.
+                                    </p>
+                                </div>
+                            `;
+                            
+                            // Reset UI
+                            uploadBtn.innerHTML = '<i class="fas fa-check"></i> Upload Complete';
+                            progressText.textContent = 'Upload complete!';
+                        } else {
+                            handleUploadError(xhr.responseText);
+                        }
+                    };
+                    
+                    xhr.onerror = function() {
+                        handleUploadError("Network error occurred");
+                    };
+                    
+                    xhr.open('POST', '/upload');
+                    xhr.send(formData);
+                } catch (error) {
+                    handleUploadError(error.message);
+                }
+            });
+
+            // Fixed drag and drop functionality
+            const fileUploadLabel = document.querySelector('.file-upload-label');
+            const fileInput = document.getElementById('fileInput');
+
+            fileUploadLabel.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUploadLabel.style.background = 'var(--input-hover)';
+                fileUploadLabel.style.borderColor = 'var(--primary-color)';
+            });
+            
+            fileUploadLabel.addEventListener('dragleave', () => {
+                fileUploadLabel.style.background = 'var(--input-bg)';
+                fileUploadLabel.style.borderColor = 'var(--input-border)';
+            });
+            
+            fileUploadLabel.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUploadLabel.style.background = 'var(--input-bg)';
+                fileUploadLabel.style.borderColor = 'var(--input-border)';
+                
+                // Handle dropped files
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    displayFileName(); // Update UI to show selected file
+                }
+            });
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -340,153 +498,9 @@
         <span>File size exceeds 150MB limit</span>
     </div>
 
-    <script>
-        const MAX_FILE_SIZE = 150 * 1024 * 1024; // 150MB in bytes
-
-        // Display selected filename and size
-        function displayFileName() {
-            const fileInput = document.getElementById('fileInput');
-            const fileSelection = document.getElementById('fileSelection');
-            const fileNameDisplay = document.getElementById('selectedFileName');
-            const fileSizeDisplay = document.getElementById('fileSize');
-            
-            if (fileInput.files.length > 0) {
-                const file = fileInput.files[0];
-                fileSelection.style.display = 'flex';
-                fileNameDisplay.textContent = file.name;
-                fileSizeDisplay.textContent = formatFileSize(file.size);
-            } else {
-                fileSelection.style.display = 'none';
-            }
-        }
-
-        // Format file size
-        function formatFileSize(bytes) {
-            if (bytes >= 1024 * 1024) {
-                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-            } else if (bytes >= 1024) {
-                return (bytes / 1024).toFixed(1) + ' KB';
-            }
-            return bytes + ' bytes';
-        }
-
-        // Handle form submission
-        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            const uploadBtn = document.getElementById('uploadBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            const successNotification = document.getElementById('successNotification');
-            const sizeErrorNotification = document.getElementById('sizeErrorNotification');
-            
-            // Clear previous notifications
-            successNotification.classList.remove('show');
-            sizeErrorNotification.classList.remove('show');
-            
-            // File size validation
-            if (file.size > MAX_FILE_SIZE) {
-                sizeErrorNotification.classList.add('show');
-                setTimeout(() => sizeErrorNotification.classList.remove('show'), 3000);
-                return;
-            }
-            
-            // Update UI
-            uploadBtn.disabled = true;
-            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Encrypting...';
-            progressContainer.style.display = 'block';
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            try {
-                const xhr = new XMLHttpRequest();
-                
-                xhr.upload.addEventListener('progress', function(e) {
-                    if (e.lengthComputable) {
-                        const percent = Math.round((e.loaded / e.total) * 100);
-                        progressBar.style.width = percent + '%';
-                        progressText.textContent = ${percent}% uploaded;
-                    }
-                });
-                
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        
-                        // Show success notification
-                        successNotification.classList.add('show');
-                        setTimeout(() => {
-                            successNotification.classList.remove('show');
-                        }, 3000);
-                        
-                        // Display credentials
-                        document.getElementById('uploadResult').innerHTML = `
-                            <div class="credentials-box">
-                                <p><strong><i class="fas fa-key"></i> Access Code:</strong> ${response.code}</p>
-                                <p><strong><i class="fas fa-lock"></i> Decryption PIN:</strong> ${response.key}</p>
-                                <p style="margin-top: 12px; font-size: 14px; opacity: 0.7;">
-                                    <i class="fas fa-info-circle"></i> Save these credentials - they will only work once.
-                                </p>
-                            </div>
-                        `;
-                        
-                        // Reset UI
-                        uploadBtn.innerHTML = '<i class="fas fa-check"></i> Upload Complete';
-                        progressText.textContent = 'Upload complete!';
-                    } else {
-                        handleUploadError(xhr.responseText);
-                    }
-                };
-                
-                xhr.onerror = function() {
-                    handleUploadError("Network error occurred");
-                };
-                
-                xhr.open('POST', '/upload');
-                xhr.send(formData);
-                
-            } catch (error) {
-                handleUploadError(error.message);
-            }
-            
-            function handleUploadError(errorMsg) {
-                uploadBtn.innerHTML = '<i class="fas fa-times"></i> Upload Failed';
-                progressText.textContent = "Error: " + (JSON.parse(errorMsg)?.error || errorMsg || 'Upload failed');
-                progressBar.style.backgroundColor = '#ff3b30';
-                uploadBtn.disabled = false;
-            }
-        });
-
-        // Fixed drag and drop functionality
-        const fileUploadLabel = document.querySelector('.file-upload-label');
-        const fileInput = document.getElementById('fileInput');
-
-        fileUploadLabel.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            fileUploadLabel.style.background = 'var(--input-hover)';
-            fileUploadLabel.style.borderColor = 'var(--primary-color)';
-        });
-        
-        fileUploadLabel.addEventListener('dragleave', () => {
-            fileUploadLabel.style.background = 'var(--input-bg)';
-            fileUploadLabel.style.borderColor = 'var(--input-border)';
-        });
-        
-        fileUploadLabel.addEventListener('drop', (e) => {
-            e.preventDefault();
-            fileUploadLabel.style.background = 'var(--input-bg)';
-            fileUploadLabel.style.borderColor = 'var(--input-border)';
-            
-            // Handle dropped files
-            if (e.dataTransfer.files.length) {
-                fileInput.files = e.dataTransfer.files;
-                displayFileName(); // Update UI to show selected file
-            }
-        });
-    </script>
+    <div class="notification error" id="errorNotification">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>An error occurred</span>
+    </div>
 </body>
 </html>
