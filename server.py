@@ -16,6 +16,11 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 from functools import wraps
 import redis
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -25,7 +30,35 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['MAX_CONTENT_LENGTH'] = 150 * 1024 * 1024  # 150MB limit
 
 # Redis configuration for rate limiting and IP blocking
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+REDIS_ENABLED = os.environ.get('REDIS_ENABLED', 'false').lower() == 'true'
+REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
+REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
+
+# In-memory fallback for rate limiting when Redis is not available
+rate_limit_data = {}
+failed_attempts_data = {}
+blocked_ips = {}
+
+# Initialize Redis client with error handling
+redis_client = None
+if REDIS_ENABLED:
+    try:
+        redis_client = redis.Redis(
+            host=REDIS_HOST, 
+            port=REDIS_PORT, 
+            password=REDIS_PASSWORD,
+            socket_timeout=2,
+            socket_connect_timeout=2,
+            retry_on_timeout=True
+        )
+        # Test connection
+        redis_client.ping()
+        logger.info("Successfully connected to Redis")
+    except Exception as e:
+        logger.warning(f"Failed to connect to Redis: {str(e)}. Using in-memory fallback.")
+        redis_client = None
+
 RATE_LIMIT_WINDOW = 3600  # 1 hour in seconds
 MAX_REQUESTS = 100  # Maximum requests per hour
 BLOCK_DURATION = 1800  # 30 minutes in seconds
@@ -42,31 +75,116 @@ def rate_limit(f):
         key = f"rate_limit:{ip}"
         
         # Check if IP is blocked
-        if redis_client.get(f"blocked:{ip}"):
+        if redis_client and redis_client.get(f"blocked:{ip}"):
             return jsonify({"error": "Too many failed attempts. Please try again later."}), 429
         
-        # Get current request count
-        current = redis_client.get(key)
-        if current is None:
-            redis_client.setex(key, RATE_LIMIT_WINDOW, 1)
-        elif int(current) >= MAX_REQUESTS:
-            return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
-        else:
-            redis_client.incr(key)
+        # Fallback to in-memory storage if Redis is not available
+        if not redis_client:
+            # Check if IP is blocked in memory
+            if ip in blocked_ips and blocked_ips[ip] > datetime.now():
+                return jsonify({"error": "Too many failed attempts. Please try again later."}), 429
+            
+            # Get current request count from memory
+            if ip not in rate_limit_data:
+                rate_limit_data[ip] = {
+                    'count': 1,
+                    'expires': datetime.now() + timedelta(seconds=RATE_LIMIT_WINDOW)
+                }
+            elif rate_limit_data[ip]['expires'] < datetime.now():
+                rate_limit_data[ip] = {
+                    'count': 1,
+                    'expires': datetime.now() + timedelta(seconds=RATE_LIMIT_WINDOW)
+                }
+            elif rate_limit_data[ip]['count'] >= MAX_REQUESTS:
+                return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
+            else:
+                rate_limit_data[ip]['count'] += 1
+            
+            return f(*args, **kwargs)
+        
+        # Redis is available, use it for rate limiting
+        try:
+            # Get current request count
+            current = redis_client.get(key)
+            if current is None:
+                redis_client.setex(key, RATE_LIMIT_WINDOW, 1)
+            elif int(current) >= MAX_REQUESTS:
+                return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
+            else:
+                redis_client.incr(key)
+        except Exception as e:
+            logger.error(f"Redis error in rate_limit: {str(e)}")
+            # Fall back to in-memory rate limiting
+            if ip not in rate_limit_data:
+                rate_limit_data[ip] = {
+                    'count': 1,
+                    'expires': datetime.now() + timedelta(seconds=RATE_LIMIT_WINDOW)
+                }
+            elif rate_limit_data[ip]['expires'] < datetime.now():
+                rate_limit_data[ip] = {
+                    'count': 1,
+                    'expires': datetime.now() + timedelta(seconds=RATE_LIMIT_WINDOW)
+                }
+            elif rate_limit_data[ip]['count'] >= MAX_REQUESTS:
+                return jsonify({"error": "Rate limit exceeded. Please try again later."}), 429
+            else:
+                rate_limit_data[ip]['count'] += 1
         
         return f(*args, **kwargs)
     return decorated_function
 
 # Track failed attempts
 def track_failed_attempt(ip):
-    key = f"failed_attempts:{ip}"
-    attempts = redis_client.incr(key)
-    redis_client.expire(key, BLOCK_DURATION)
+    if not redis_client:
+        # Fallback to in-memory storage
+        if ip not in failed_attempts_data:
+            failed_attempts_data[ip] = {
+                'count': 1,
+                'expires': datetime.now() + timedelta(seconds=BLOCK_DURATION)
+            }
+        elif failed_attempts_data[ip]['expires'] < datetime.now():
+            failed_attempts_data[ip] = {
+                'count': 1,
+                'expires': datetime.now() + timedelta(seconds=BLOCK_DURATION)
+            }
+        else:
+            failed_attempts_data[ip]['count'] += 1
+        
+        if failed_attempts_data[ip]['count'] >= MAX_FAILED_ATTEMPTS:
+            blocked_ips[ip] = datetime.now() + timedelta(seconds=BLOCK_DURATION)
+            return True
+        return False
     
-    if attempts >= MAX_FAILED_ATTEMPTS:
-        redis_client.setex(f"blocked:{ip}", BLOCK_DURATION, 1)
-        return True
-    return False
+    # Redis is available
+    try:
+        key = f"failed_attempts:{ip}"
+        attempts = redis_client.incr(key)
+        redis_client.expire(key, BLOCK_DURATION)
+        
+        if attempts >= MAX_FAILED_ATTEMPTS:
+            redis_client.setex(f"blocked:{ip}", BLOCK_DURATION, 1)
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Redis error in track_failed_attempt: {str(e)}")
+        # Fall back to in-memory tracking
+        if ip not in failed_attempts_data:
+            failed_attempts_data[ip] = {
+                'count': 1,
+                'expires': datetime.now() + timedelta(seconds=BLOCK_DURATION)
+            }
+        elif failed_attempts_data[ip]['expires'] < datetime.now():
+            failed_attempts_data[ip] = {
+                'count': 1,
+                'expires': datetime.now() + timedelta(seconds=BLOCK_DURATION)
+            }
+        else:
+            failed_attempts_data[ip]['count'] += 1
+        
+        if failed_attempts_data[ip]['count'] >= MAX_FAILED_ATTEMPTS:
+            blocked_ips[ip] = datetime.now() + timedelta(seconds=BLOCK_DURATION)
+            return True
+        return False
 
 # Generate an alphanumeric 6-character code
 def generate_pin():
@@ -99,7 +217,7 @@ def cleanup_old_files():
                         if file_data[code]['path'] == filepath:
                             del file_data[code]
         except Exception as e:
-            print(f"Cleanup error for {filename}: {str(e)}")
+            logger.error(f"Cleanup error for {filename}: {str(e)}")
 
 # Initialize cleanup
 atexit.register(cleanup_old_files)
@@ -153,6 +271,7 @@ def upload_file():
         })
 
     except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
         return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
 @app.route("/download", methods=["POST"])
@@ -206,6 +325,7 @@ def download_file():
         return response
 
     except Exception as e:
+        logger.error(f"Download error: {str(e)}")
         return render_template("index.html", error=f"Download failed: {str(e)}")
 
 # Keep-Alive Function (Prevents Render Shutdown)
